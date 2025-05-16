@@ -30,6 +30,9 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
-# Marketplace executor specific configuration
-marketplace:
-  executor:
+# ODM configuration
+odm:
+  productPlane:
+    marketplaceService:
+      active: true
+      address: http://localhost:8080

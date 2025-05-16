@@ -6,8 +6,8 @@ import java.util.Date;
 
 @Schema(description = "Response for marketplace operations")
 public class MarketplaceResponseRes {
-    @Schema(description = "Status of the operation (SUCCESS or ERROR)", example = "SUCCESS")
-    private String status;
+    @Schema(description = "Status of the operation (PENDING, GRANTED, DENIED, REVOKED, ERROR)", example = "GRANTED")
+    private MarketplaceRequestStatus status;
 
     @Schema(description = "Message describing the operation result", example = "Subscription processed successfully")
     private String message;
@@ -18,11 +18,11 @@ public class MarketplaceResponseRes {
     @Schema(description = "Timestamp when the response was created")
     private Date createdAt;
 
-    public String getStatus() {
+    public MarketplaceRequestStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(MarketplaceRequestStatus status) {
         this.status = status;
     }
 
