@@ -1,7 +1,5 @@
 server:
   port: 8080
-  servlet:
-    context-path: /api/v1
 
 spring:
   application:
@@ -24,15 +22,13 @@ springdoc:
 # Logging configuration
 logging:
   level:
-    root: INFO
-    org.opendatamesh: DEBUG
-    org.springframework.web: INFO
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 # ODM configuration
 odm:
-  productPlane:
-    marketplaceService:
+  product-plane:
+    marketplace-service:
       active: true
       address: http://localhost:8080

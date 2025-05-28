@@ -5,10 +5,10 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class MarketplaceServiceConfig {
-    @Value("${odm.productPlane.marketplaceService.address}")
+    @Value("${odm.product-plane.marketplace-service.address}")
     private String address;
 
-    @Value("${odm.productPlane.marketplaceService.active}")
+    @Value("${odm.product-plane.marketplace-service.active}")
     private boolean active;
 
     public boolean isActive() {
