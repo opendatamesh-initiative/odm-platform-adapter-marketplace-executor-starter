@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 9019
 
 spring:
   application:
@@ -31,4 +31,4 @@ odm:
   product-plane:
     marketplace-service:
       active: true
-      address: http://localhost:8080
+      address: http://localhost:8085
