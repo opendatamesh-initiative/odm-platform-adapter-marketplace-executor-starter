@@ -90,7 +90,7 @@ public class MarketplaceExecutorService {
         // This will be executed asynchronously
 
         // Send success response
-        sendResponse(createSuccessResponse(request, "Subscription processed successfully"), request.getRequest().getIdentifier());
+        sendResponse(createSuccessResponse(request, MarketplaceRequestStatus.GRANTED, "Subscription processed successfully"), request.getRequest().getIdentifier());
     }
 
     private void handleUnsubscribe(MarketplaceRequestRes request) {
@@ -98,12 +98,12 @@ public class MarketplaceExecutorService {
         // This will be executed asynchronously
 
         // Send success response
-        sendResponse(createSuccessResponse(request, "Unsubscription processed successfully"), request.getRequest().getIdentifier());
+        sendResponse(createSuccessResponse(request, MarketplaceRequestStatus.REVOKED, "Unsubscription processed successfully"), request.getRequest().getIdentifier());
     }
 
-    private MarketplaceResponseRes createSuccessResponse(MarketplaceRequestRes request, String message) {
+    private MarketplaceResponseRes createSuccessResponse(MarketplaceRequestRes request, MarketplaceRequestStatus requestStatus, String message) {
         MarketplaceResponseRes response = new MarketplaceResponseRes();
-        response.setStatus(MarketplaceRequestStatus.GRANTED);
+        response.setStatus(requestStatus);
         response.setMessage(message);
         response.setProvider(request.getRequest().getProvider());
         response.setCreatedAt(new Date());
