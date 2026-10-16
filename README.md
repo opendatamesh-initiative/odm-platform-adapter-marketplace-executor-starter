@@ -1,101 +1,210 @@
-# ODM Platform Adapter Marketplace Executor Starter
+# ODM Platform Marketplace Executor Starter
 
-This is a starter project for implementing a Marketplace Executor in the Open Data Mesh (ODM) platform. It serves as a template for creating executors that handle data product access management in the ODM ecosystem.
+> A starter project for building a **Marketplace Executor** for the [Open Data Mesh Platform](https://dpds.opendatamesh.org/) —
+> grant and revoke access to data products on your enterprise tools.
 
-## Overview
+<p align="center">
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square" alt="License: Apache 2.0"></a>
+</p>
 
-The Marketplace Executor is a crucial component in the ODM architecture that bridges the gap between the Data Product Catalog and various enterprise tools. It's responsible for managing access to data products listed in the catalog, effectively turning the catalog into a true Data Product marketplace.
+<p align="center">
+  <a href="https://openjdk.org/"><img src="https://img.shields.io/badge/Java-21-ED8B00.svg?style=flat-square&logo=openjdk&logoColor=white" alt="Java 21"></a>
+  <a href="https://quarkus.io/"><img src="https://img.shields.io/badge/Quarkus-3.40-4695EB.svg?style=flat-square&logo=quarkus&logoColor=white" alt="Quarkus 3.40"></a>
+</p>
 
-## Architecture
+<p align="center">
+  <a href="#what-the-executor-does">What the executor does</a> ·
+  <a href="#quick-start-local">Quick start</a> ·
+  <a href="#executor-api">Executor API</a> ·
+  <a href="#implement-your-executor">Implement your executor</a> ·
+  <a href="#contributing">Contributing</a>
+</p>
 
-The executor follows a standardized interface to handle marketplace operations:
+---
 
-### Endpoint
+## What the executor does
+
+The Marketplace Executor is the component that bridges the **Data Product Catalog** and your enterprise tools. It manages access to the data products listed in the catalog, turning the catalog into a true **Data Product marketplace**.
+
+- The **Marketplace Service** receives an access request (subscribe or unsubscribe) and forwards it to the executor.
+- The executor **grants or revokes access** on the target tool. The complexity of orchestrating multiple calls is delegated to it.
+- The executor **reports the outcome** back to the Marketplace Service, asynchronously.
+
+```mermaid
+sequenceDiagram
+  participant M as Marketplace Service
+  participant E as Marketplace Executor
+  participant T as Enterprise tool
+  M->>E: POST /requests (subscribe / unsubscribe)
+  E-->>M: 202 Accepted
+  E->>T: grant or revoke access
+  E->>M: POST /requests/{identifier}/results
+```
+
+This starter is stateless (no database) and is meant to be **forked and customized**.
+
+---
+
+## Quick start (local)
+
+**Requirements:** Java **21** · Maven **3.9+** (or the included `./mvnw`)
+
+```bash
+git clone https://github.com/opendatamesh-initiative/odm-platform-adapter-marketplace-executor-starter.git
+cd odm-platform-adapter-marketplace-executor-starter
+
+./mvnw quarkus:dev
+```
+
+The executor listens on port **9019** (`quarkus.http.port` in `application.yml`). When it is up:
+
+| | Endpoint |
+|:--|:---------|
+| **Swagger UI** | [http://localhost:9019/swagger-ui](http://localhost:9019/swagger-ui) |
+| **OpenAPI** | [http://localhost:9019/api-docs](http://localhost:9019/api-docs) |
+
+Other builds:
+
+```bash
+./mvnw package                  # JVM build, runner in target/quarkus-app/
+./mvnw -Pnative package         # native build (Mandrel or GraalVM 21)
+./mvnw test                     # tests (outbound calls are mocked)
+```
+
+---
+
+## Executor API
+
+The Marketplace Service calls a single endpoint:
+
 ```
 POST {executorBaseUrl}/api/v1/up/marketplace-executor/requests
 ```
 
-### Request Format
-```json
-{
-    "v": "1",
-    "operation": "MARKETPLACE_SUBSCRIBE|MARKETPLACE_UNSUBSCRIBE",
-    "request": {
-        "name": "",
-        "identifier": "",
-        "provider": {
-            "dataProductFqn": "",
-            "dataProductPortsFqn": [""]
-        },
-        "consumer": {
-            "type": "dataproduct | user | team",
-            "identifier": "fqn | email | ?"
-        },
-        "requester": {
-            "type": "user",
-            "identifier": "email"
-        },
-        "properties": {},
-        "startDate": "Date",
-        "endDate": "Date"
-    }
-}
-```
+It answers **202 Accepted** and processes the request asynchronously. An invalid request returns **400** with an error body.
 
-### Response Format
+<details open>
+<summary><strong>Request</strong></summary>
+
+<br>
+
 ```json
 {
-    "status": "PENDING|GRANTED|DENIED|REVOKED|ERROR",
-    "message": "",
+  "v": "1",
+  "operation": "MARKETPLACE_SUBSCRIBE | MARKETPLACE_UNSUBSCRIBE",
+  "request": {
+    "name": "",
+    "identifier": "",
     "provider": {
-        "dataProductFqn": "",
-        "dataProductPortsFqn": [""]
+      "dataProductFqn": "",
+      "dataProductPortsFqn": [""]
     },
-    "createdAt": "Date"
+    "consumer": {
+      "type": "dataproduct | user | team",
+      "identifier": "fqn | email | ?"
+    },
+    "requester": {
+      "type": "user",
+      "identifier": "email"
+    },
+    "properties": {},
+    "startDate": "Date",
+    "endDate": "Date"
+  }
 }
 ```
 
-## Getting Started
+</details>
 
-This is a stateless Quarkus 3.40 / Java 21 service, rendered from `blindata-backend-service-template-quarkus` with the `usecases`, `http-service` and `rest-client` modules (see `template.yaml`). There is no persistence layer.
+<details open>
+<summary><strong>Result sent to the Marketplace Service</strong></summary>
+
+<br>
+
+Once processed, the executor posts the result to
+`{marketplaceServiceAddress}/api/v1/pp/marketplace/requests/{identifier}/results`:
+
+```json
+{
+  "status": "PENDING | GRANTED | DENIED | REVOKED | ERROR",
+  "message": "",
+  "provider": {
+    "dataProductFqn": "",
+    "dataProductPortsFqn": [""]
+  },
+  "createdAt": "Date"
+}
+```
+
+</details>
+
+| Status | Meaning |
+|:-------|:--------|
+| `PENDING` | The grant process has started but needs additional work |
+| `GRANTED` | The permissions have been correctly granted |
+| `DENIED` | The grant process has been denied |
+| `REVOKED` | The permissions have been correctly revoked |
+| `ERROR` | An error occurred during the process |
+
+---
+
+## Implement your executor
 
 1. Fork this repository
-2. Implement `MarketplaceAccessOutboundPortImpl` (package `marketplace.services.usecases.processrequest`) with the grant/revoke logic of your enterprise tool
-3. Configure `src/main/resources/application.yml` (port `9019`, Marketplace Service address under `odm.product-plane.marketplace-service`)
-4. Build and deploy your custom executor
+2. Implement `MarketplaceAccessOutboundPortImpl` (package `marketplace.services.usecases.processrequest`) with the grant and revoke logic of your enterprise tool
+3. Set the Marketplace Service address in `src/main/resources/application.yml`:
 
-```bash
-./mvnw quarkus:dev      # dev mode, OpenAPI at /api-docs, Swagger UI at /swagger-ui
-./mvnw package          # JVM build
-./mvnw -Pnative package # native build (Mandrel or GraalVM 21)
+```yaml
+odm:
+  product-plane:
+    marketplace-service:
+      active: true
+      address: http://localhost:8085
 ```
 
-Layout: `rest` (JAX-RS resource, error mapping) -> `marketplace.services` (use cases service) -> `marketplace.services.usecases.processrequest` (use case, ports, factory). `utils` and `exceptions` come from the template. See `spdd/norms/`.
+4. Build and deploy your custom executor
 
-## Key Features
+**Implementation notes**
 
-- Standardized interface for marketplace operations
-- Support for subscription and unsubscription operations
-- Flexible consumer type handling (data product, user, or team)
-- Configurable properties for custom implementation needs
-- Built-in support for access duration management (start/end dates)
+- Each request has a unique `identifier` generated by the Marketplace Service
+- Keep detailed logs of the resources created during the access grant process
+- Implement error handling and rollback as needed
+- Access can be time-bound through `startDate` and `endDate`
 
-## Implementation Notes
+**Code layout**
 
-- Each request has a unique identifier generated by the Marketplace Service
-- The complexity of orchestrating multiple calls to grant access is delegated to the executor
-- The executor should maintain detailed logs of the resources created during the access grant process
-- Error handling and rollback mechanisms should be implemented as needed
+| Package | Role |
+|:--------|:-----|
+| `rest` | JAX-RS resource and error mapping |
+| `marketplace.services` | Use cases service: maps API resources to domain commands |
+| `marketplace.services.usecases.processrequest` | Use case, ports, adapters, factory |
+| `utils`, `exceptions` | Shared utilities from the template |
 
-## Related Links
+Conventions live in [`spdd/norms/`](spdd/norms/README.md).
+
+---
+
+## Related links
 
 - [Open Data Mesh Architecture](https://platform.opendatamesh.org/architecture/)
 - [ODM Initiative Discussion](https://github.com/orgs/opendatamesh-initiative/discussions/1)
 
-## License
-
-This project is licensed under the terms of the license included in the repository.
+---
 
 ## Contributing
 
-This is a starter project intended to be forked and customized. For questions or suggestions, please refer to the [ODM Initiative Discussion](https://github.com/orgs/opendatamesh-initiative/discussions/1).
+This is a starter project intended to be forked and customized.
+
+1. Fork the repository and create a feature branch
+2. Make your changes with clear commits
+3. Open a pull request against the main branch
+
+Questions or proposals → [ODM Initiative Discussion](https://github.com/orgs/opendatamesh-initiative/discussions/1).
+
+---
+
+## License
+
+Licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+Part of the [Open Data Mesh Initiative](https://github.com/opendatamesh-initiative).
