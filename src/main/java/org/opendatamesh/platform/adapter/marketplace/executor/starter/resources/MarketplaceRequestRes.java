@@ -1,9 +1,9 @@
 package org.opendatamesh.platform.adapter.marketplace.executor.starter.resources;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @Schema(description = "Request for marketplace operations")
 public class MarketplaceRequestRes {

@@ -1,6 +1,7 @@
 package org.opendatamesh.platform.adapter.marketplace.executor.starter.resources;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import org.opendatamesh.platform.adapter.marketplace.executor.starter.marketplace.domain.MarketplaceRequestStatus;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 import java.util.Date;
 

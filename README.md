@@ -57,10 +57,20 @@ POST {executorBaseUrl}/api/v1/up/marketplace-executor/requests
 
 ## Getting Started
 
+This is a stateless Quarkus 3.40 / Java 21 service, rendered from `blindata-backend-service-template-quarkus` with the `usecases`, `http-service` and `rest-client` modules (see `template.yaml`). There is no persistence layer.
+
 1. Fork this repository
-2. Implement the executor interface according to your specific enterprise tool requirements
-3. Configure the necessary properties and dependencies
+2. Implement `MarketplaceAccessOutboundPortImpl` (package `marketplace.services.usecases.processrequest`) with the grant/revoke logic of your enterprise tool
+3. Configure `src/main/resources/application.yml` (port `9019`, Marketplace Service address under `odm.product-plane.marketplace-service`)
 4. Build and deploy your custom executor
+
+```bash
+./mvnw quarkus:dev      # dev mode, OpenAPI at /api-docs, Swagger UI at /swagger-ui
+./mvnw package          # JVM build
+./mvnw -Pnative package # native build (Mandrel or GraalVM 21)
+```
+
+Layout: `rest` (JAX-RS resource, error mapping) -> `marketplace.services` (use cases service) -> `marketplace.services.usecases.processrequest` (use case, ports, factory). `utils` and `exceptions` come from the template. See `spdd/norms/`.
 
 ## Key Features
 

@@ -1,29 +1,11 @@
 package org.opendatamesh.platform.adapter.marketplace.executor.starter.config;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
+import io.smallrye.config.ConfigMapping;
 
-@Configuration
-public class MarketplaceServiceConfig {
-    @Value("${odm.product-plane.marketplace-service.address}")
-    private String address;
+@ConfigMapping(prefix = "odm.product-plane.marketplace-service")
+public interface MarketplaceServiceConfig {
 
-    @Value("${odm.product-plane.marketplace-service.active}")
-    private boolean active;
+    boolean active();
 
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-} 
+    String address();
+}
