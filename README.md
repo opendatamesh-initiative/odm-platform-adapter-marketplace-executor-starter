@@ -15,8 +15,10 @@
 <p align="center">
   <a href="#what-the-executor-does">What the executor does</a> ·
   <a href="#quick-start-local">Quick start</a> ·
+  <a href="#run-with-docker">Run with Docker</a> ·
   <a href="#executor-api">Executor API</a> ·
   <a href="#implement-your-executor">Implement your executor</a> ·
+  <a href="#cicd">CI/CD</a> ·
   <a href="#contributing">Contributing</a>
 </p>
 
@@ -69,6 +71,28 @@ Other builds:
 ./mvnw package                  # JVM build, runner in target/quarkus-app/
 ./mvnw -Pnative package         # native build (Mandrel or GraalVM 21)
 ./mvnw test                     # tests (outbound calls are mocked)
+```
+
+---
+
+## Run with Docker
+
+The `Dockerfile` packages the Quarkus **native** executable on `ubi9/ubi-minimal` (port **9019**, non-root user `1001`, no Java needed at runtime). Published images, one per release:
+
+```bash
+docker run --rm -p 9019:9019 \
+  -e ODM_PRODUCT_PLANE_MARKETPLACE_SERVICE_ADDRESS=http://host.docker.internal:8085 \
+  ghcr.io/opendatamesh-initiative/odm-platform-adapter-marketplace-executor-starter:<version>
+# also on Docker Hub: opendatamesh/odm-platform-adapter-marketplace-executor-starter:<version>
+```
+
+Settings are environment variables (any property of `application.yml`, upper-cased with dots and dashes turned into underscores). For a larger configuration, mount a file at `/work/config/application.yml`, which the executor reads relative to its working directory `/work`.
+
+Build the image locally (needs Docker; no local GraalVM or Mandrel):
+
+```bash
+./mvnw package -DskipTests -Dnative -Dquarkus.native.container-build=true
+docker build -t odm-platform-adapter-marketplace-executor-starter .
 ```
 
 ---
@@ -162,7 +186,8 @@ odm:
       address: http://localhost:8085
 ```
 
-4. Build and deploy your custom executor
+4. Update the image name in the CI/CD configuration (see [CI/CD](#cicd))
+5. Build and deploy your custom executor
 
 **Implementation notes**
 
@@ -181,6 +206,23 @@ odm:
 | `utils`, `exceptions` | Shared utilities from the template |
 
 Conventions live in [`spdd/norms/`](spdd/norms/README.md).
+
+---
+
+## CI/CD
+
+Two GitHub Actions workflows are in `.github/workflows/`:
+
+| Workflow | Runs on | What it does |
+|:---------|:--------|:-------------|
+| `ci.yml` | Push and pull request to `main` | JDK 21 (Temurin), `./mvnw -B verify` |
+| `cicd.yml` | A GitHub release is created | Checks the tag against the POM version, runs the tests, builds the native executable and the Docker image, and pushes it to GitHub Container Registry (`ghcr.io/opendatamesh-initiative/<artifactId>:<version>`, with `GITHUB_TOKEN`) and Docker Hub (`opendatamesh/<artifactId>:<version>`, with the repository secrets `DOCKER_USERNAME` and `DOCKER_PASSWORD`) |
+
+The version check strips every character that is not a digit or a dot from the tag (`v1.0.2` becomes `1.0.2`) and fails if the result differs from the POM version.
+
+**To release:** set the POM version to the release version (no `-SNAPSHOT`), merge to `main`, create a GitHub release with a matching tag (`v1.0.2` or `1.0.2`), then bump the POM to the next `-SNAPSHOT`.
+
+**Executors generated from this starter inherit the `Dockerfile` and both workflows.** The workflow `name` and the `IMAGE_NAME` environment variable are hard-coded to this repository's artifactId (`odm-platform-adapter-marketplace-executor-starter`). After generating a new executor, update `IMAGE_NAME` and the `name` in both `.github/workflows/ci.yml` and `.github/workflows/cicd.yml` to the new artifactId, otherwise its images would be published under the starter's name. Also add the `DOCKER_USERNAME` and `DOCKER_PASSWORD` secrets to the new repository.
 
 ---
 
